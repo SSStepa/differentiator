@@ -1,0 +1,283 @@
+#include "../include/basic.h"
+
+void InfoPrintfInt(int var, const char *varName, const char *file, int line)
+{
+    fprintf(stderr, YEL "%s, %d:%s %s = <%s%d%s>\n", file, line, COLOR_RESET, varName, CYN, var, COLOR_RESET);
+}
+
+void InfoPrintfStr(const char *var, const char *varName, const char *file, int line)
+{
+    fprintf(stderr, YEL "%s, %d:%s %s = <%s%s%s>\n", file, line, COLOR_RESET, varName, CYN, var, COLOR_RESET);
+}
+
+void InfoPrintfC(char var, const char *varName, const char *file, int line)
+{
+    fprintf(stderr, YEL "%s, %d:%s %s = <%s%c%s>\n", file, line, COLOR_RESET, varName, CYN, var, COLOR_RESET);
+}
+
+void InfoPrintfLlu(size_t var, const char *varName, const char *file, int line)
+{
+    fprintf(stderr, YEL "%s, %d:%s %s = <%s%llu%s>\n", file, line, COLOR_RESET, varName, CYN, var, COLOR_RESET);
+}
+
+
+void InfoPrintfDouble(double var, const char *varName, const char *file, int line)
+{
+    fprintf(stderr, YEL "%s, %d:%s %s = <%s%lg%s>\n", file, line, COLOR_RESET, varName, CYN, var, COLOR_RESET);
+}
+
+errorStatus_e LogPrintf(const char *messageType, const char *errMess, int line, const char *file, errorStatus_e ErrCode, ...)
+{
+    assert(messageType);
+    assert(errMess);
+    assert(file);
+
+    LOG_START();
+
+    time_t rawtime;
+    struct tm *timeinfo;
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    char *time_str = asctime(timeinfo);
+    time_str[strlen(time_str) - 1] = '\0';
+
+    va_list argsPrintf = {};
+    va_start(argsPrintf, ErrCode);
+    char errMessText[MAX_MESS_LENGTH] = {};
+    vsnprintf(errMessText, MAX_MESS_LENGTH, errMess,  argsPrintf);
+
+
+    #ifdef LOUD
+    fprintf(stderr, CYN "[%s] %s:%d:%s %s:%d %s%s\n" COLOR_RESET, time_str, file, line, COLOR_RESET, TO_STR(ErrCode), ErrCode, RED, errMessText);
+    #endif
+
+
+    LOG_PRINTF("<h2>[%s] %s %s:%d: %s:%d %s</h2>\n", time_str, messageType, file, line, TO_STR(ErrCode), ErrCode, errMessText);
+
+    LOG_END();
+
+    va_end(argsPrintf);
+
+    return ErrCode;
+}
+
+errorStatus_e StartError()
+{
+    FILE *fileLog = fopen(LOG_FILE, "a");
+    if (fileLog == NULL) return $ERR(FILEERR, "PROBLEM WITH LOG FILE");
+
+    fwrite("# ", 1, 2, fileLog);
+
+    fclose(fileLog);
+
+    return OK;
+}
+
+errorStatus_e EndError()
+{
+    FILE *fileLog = fopen(LOG_FILE, "a");
+    if (fileLog == NULL) return $ERR(FILEERR, "PROBLEM WITH LOG FILE");
+
+    fwrite("<hr>\n", 1, 6, fileLog);
+
+    fclose(fileLog);
+
+    return OK;
+}
+
+errorStatus_e SetUpLog()
+{
+    FILE *fileLog = fopen(LOG_FILE, "a");
+    if (fileLog == NULL) return $ERR(FILEERR, "PROBLEM WITH LOG FILE");
+
+    fwrite("<pre>\n", 1, 7, fileLog);
+    fwrite("<hr>\n", 1, 6, fileLog);
+    fwrite("<h2>                            **NEW RUN**                               </h2>\n", 1, 81, fileLog);
+    fwrite("<hr>\n", 1, 6, fileLog);
+    
+    fclose(fileLog);
+    return OK;
+}
+
+errorStatus_e EndLog()
+{
+    FILE *fileLog = fopen(LOG_FILE, "a");
+
+    fwrite("<h2><font color=green>PROGRAM ENDED WITH ALL GOOD</font></h2>\n", 1, 63, fileLog);
+    fwrite("</pre>\n", 1, 8, fileLog);
+
+    fclose(fileLog);
+    return OK;
+
+}
+
+bool IsZero(double x)
+{
+    if (fabs(x) <= EPSILON)
+        return true;
+    else
+        return false;
+}
+
+errorStatus_e GetFileFull(const char *fileName, string_t *string)
+{
+    assert(fileName != NULL);
+    assert(string);
+
+    int fileDes = open(fileName, O_RDONLY, 0);
+    if (fileDes == -1) return $ERR(FILEERR, "NO FILE TO READ FROM IN GetFAsmFileFull");
+
+    struct stat st = {};
+    if (fstat(fileDes, &st)) return $ERR(FILEERR, "ERROR IN FILE WHILE TRYING TO fstat");
+
+    string -> str = (char *) calloc(st.st_size + 1, sizeof(char));
+    if (string -> str == NULL) return $ERR(NOMEM, "NOT ENOUGH MEMORY TO READ FILE AS FULL");
+
+
+    int fileLen = read(fileDes, (void *) string -> str, st.st_size);
+    if (fileLen < 0) return $ERR(FILEERR, "ERROR WHILE READING FROM FILE");
+
+    string -> str = (char *) realloc(string -> str, fileLen + 1);
+    *(string -> str + fileLen) = '\0';
+    
+    string -> len = (size_t) fileLen;
+
+    close(fileDes);
+
+    return OK;
+}
+
+errorStatus_e GetFileFullBin(const char *fileName, string_t *string)
+{
+    assert(fileName != NULL);
+    assert(string);
+
+    int fileDes = open(fileName, O_RDONLY | O_BINARY, 0);
+    if (fileDes == -1) return $ERR(FILEERR, "NO FILE TO READ FROM IN GetFAsmFileFull");
+
+    struct stat st = {};
+    if (fstat(fileDes, &st)) return $ERR(FILEERR, "ERROR IN FILE WHILE TRYING TO fstat");
+
+    string -> str = (char *) calloc(st.st_size + 1, sizeof(char));
+    if (string -> str == NULL) return $ERR(NOMEM, "NOT ENOUGH MEMORY TO READ FILE AS FULL");
+
+
+    int fileLen = read(fileDes, (void *) string -> str, st.st_size);
+    if (fileLen < 0) return $ERR(FILEERR, "ERROR WHILE READING FROM FILE");
+
+    string -> str = (char *) realloc(string -> str, fileLen + 1);
+    *(string -> str + fileLen) = '\0';
+    
+    string -> len = (size_t) fileLen;
+
+    close(fileDes);
+
+    return OK;
+}
+
+errorStatus_e FlagsParse(int argc, char *const *argv, const char **FileToReadFrom, const char **FileToWriteTo)
+{
+    int arg = 0;
+
+    while((arg = getopt(argc, argv, OPTS)) != -1) {
+        switch (arg)
+        {
+        case 'i':
+            *FileToReadFrom = optarg;
+            break;
+
+        case 'o':
+            *FileToWriteTo = optarg;
+            break;
+
+        case 'h':
+            ShowHelp();
+            break;
+
+        default:
+            $ERR(WRIN, "BAD FLAGS IN CALL");
+            break;
+        }
+    }
+
+    return OK;
+}
+
+void ShowHelp()
+{
+    printf("[-i]  Name of file to read from\n");
+    printf("[-o]  Name of file to write to");
+}
+
+errorStatus_e InitLogDir()
+{
+    if (_chdir(MY_LOG_FOLDER) != 0)
+        return $ERR(WRIN, "ERROR WHILE TRYING TO CD LOG FOLDER");
+
+    time_t rawtime;
+    struct tm *timeinfo;
+    char folderName[NAME_MAX_LENGTH];
+
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+
+    strftime(folderName, sizeof(folderName), "%Y-%m-%d_%H-%M-%S", timeinfo);
+    if (_mkdir(folderName) != 0)
+        return $ERR(WRIN, "ERROR WHILE TRYING TO CREATE LOG FOLDER");
+    if (_chdir(folderName) != 0)
+        return $ERR(WRIN, "ERROR WHILE TRYING TO CD LOG FOLDER");
+    
+    return OK;
+}
+
+errorStatus_e ClearBuffer()
+{
+    while(int c = getchar() != '\n' && c != EOF) {
+        ;
+    }
+
+    return OK;
+}
+
+ssize_t my_getline(char **lineToWritePtr, size_t *buffLen, FILE *stream)
+{
+    assert(lineToWritePtr);
+    assert(stream);
+    
+    if (*lineToWritePtr == NULL || *buffLen == 0) {
+        *buffLen = INIT_GETLINE_BUFF;
+        *lineToWritePtr = (char *) calloc(INIT_GETLINE_BUFF, sizeof(char));
+        if (!(*lineToWritePtr))
+            return -1;
+    }
+
+    size_t pos = 0;
+    int c = 0;
+    while((c = fgetc(stream)) != EOF) {
+        if (pos + 1 >= *buffLen) {
+            char *tempBuff = (char *) realloc(*lineToWritePtr, *buffLen * 2);
+            if (!tempBuff) return -1;
+
+            *lineToWritePtr = tempBuff;
+            *buffLen *= 2;
+        }
+
+        if (c == '\n') break;
+        (*lineToWritePtr)[pos++] = (char) c;
+    }
+
+    if (pos == 0 && c == EOF) return -1;
+
+    (*lineToWritePtr)[pos] = '\0';
+
+    return (ssize_t) pos;
+}
+
+void SkipSpaces(char **ptrToString)
+{
+    assert(ptrToString);
+    assert(*ptrToString);
+
+    while (**ptrToString == ' ' || **ptrToString == '\n' || **ptrToString == '\r' || **ptrToString == '\t')
+        (*ptrToString)++;
+}
