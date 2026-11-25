@@ -208,11 +208,12 @@ errorStatus_e TreeNodeDelete(binTreeNode_t **deleteNodePtr)
     return OK;
 }
 
-errorStatus_e ReadDataAndCreateTree(binTree_t *tree, string_t *inString, FILE *inFile, double *varsList)
+errorStatus_e ReadDataAndCreateTree(binTree_t *tree, string_t *inString, FILE *inFile, bool *varsExistList)
 {
     assert(tree);
     assert(inString);
     assert(inFile);
+    assert(varsExistList);
 
     $INFO("starting getting info and creating tree");
     errorStatus_e statusCode = OK;
@@ -225,7 +226,7 @@ errorStatus_e ReadDataAndCreateTree(binTree_t *tree, string_t *inString, FILE *i
 
     TREE_CTOR(tree);
 
-    RUN_COMMAND(AddNodeToTree(&(tree -> data), &(inString -> str), varsList), "ERROR WHILE RECURSIVELY TRANSLATING STRING TO TREE");
+    RUN_COMMAND(AddNodeToTree(&(tree -> data), &(inString -> str), varsExistList), "ERROR WHILE RECURSIVELY TRANSLATING STRING TO TREE");
     inString -> str -= inString -> len; // put ptr back to first char
 
     TreeDump(tree);
@@ -234,11 +235,12 @@ errorStatus_e ReadDataAndCreateTree(binTree_t *tree, string_t *inString, FILE *i
     return statusCode;
 }
 
-errorStatus_e AddNodeToTree(binTreeNode_t **ptrToConnect, char **ptrToRead, double *varsList)
+errorStatus_e AddNodeToTree(binTreeNode_t **ptrToConnect, char **ptrToRead, bool *varsExistList)
 {
     assert(ptrToRead);
     assert(*ptrToRead);
     assert(ptrToConnect);
+    assert(varsExistList);
 
     $INFO("starting adding node to tree from position %.10s", *ptrToRead);
     errorStatus_e statusCode = OK;
@@ -251,11 +253,11 @@ errorStatus_e AddNodeToTree(binTreeNode_t **ptrToConnect, char **ptrToRead, doub
     binTreeNode_t *dummyNode = 0;
 
     SkipSpaces(ptrToRead);
-    AddNodeToTree(&dummyNode, ptrToRead, varsList);
+    AddNodeToTree(&dummyNode, ptrToRead, varsExistList);
     SkipSpaces(ptrToRead);
 
     binTreeNodeVal_t val = {};
-    RUN_COMMAND(GetNodeVal(&val, ptrToRead, varsList), "PROBLEM WHILE GETTING NODE VAL INFO");
+    RUN_COMMAND(GetNodeVal(&val, ptrToRead, varsExistList), "PROBLEM WHILE GETTING NODE VAL INFO");
     RUN_COMMAND(TreeNodeCreate(val, ptrToConnect), "ERROR WHILE CREATING NODE");
     SkipSpaces(ptrToRead);
 
@@ -263,7 +265,7 @@ errorStatus_e AddNodeToTree(binTreeNode_t **ptrToConnect, char **ptrToRead, doub
         (**ptrToConnect).left = dummyNode;
 
     if (val.nodeType == OP_T)
-        RUN_COMMAND(AddNodeToTree(&((*ptrToConnect) -> right), ptrToRead, varsList), "PROBLEM WHILE ADDING RIGHT SON(ALL FUNCTIONS HAVE IT)");
+        RUN_COMMAND(AddNodeToTree(&((*ptrToConnect) -> right), ptrToRead, varsExistList), "PROBLEM WHILE ADDING RIGHT SON(ALL FUNCTIONS HAVE IT)");
 
     if (!CheckSymbolAndMove(ptrToRead, ')'))
         return $ERR(WRIN, "NO CLOSIND ) FOR NODE");
@@ -284,11 +286,12 @@ bool CheckSymbolAndMove(char **ptrLineToCheck, char Symbol)
     return true;
 }
 
-errorStatus_e GetNodeVal(binTreeNodeVal_t *outVal, char **ptrToRead, double *varsList)
+errorStatus_e GetNodeVal(binTreeNodeVal_t *outVal, char **ptrToRead, bool *varsExistList)
 {
     assert(outVal);
     assert(ptrToRead);
     assert(*ptrToRead);
+    assert(varsExistList);
 
     int readLen = 0;
 
@@ -315,7 +318,7 @@ errorStatus_e GetNodeVal(binTreeNodeVal_t *outVal, char **ptrToRead, double *var
                 for (ind = 0; ind < VARS_AMOUNT; ind++) {
                     if (*buff == VARS[ind].name) {
                         (outVal -> nodeVal).varVal = VARS[ind].varCode;
-                        AddVarValue(varsList, ind);
+                        varsExistList[ind] = true;
                         break;
                     }
                 }
@@ -329,15 +332,3 @@ errorStatus_e GetNodeVal(binTreeNodeVal_t *outVal, char **ptrToRead, double *var
     return OK;
 }
 
-errorStatus_e AddVarValue(double *varsList, size_t ind)
-{
-    assert(varsList);
-
-    if (isnan(varsList[ind])) {
-        printf("What val you want %c to have: ", VARS[ind].name);
-        if (scanf("%lg", varsList + ind) != 1)
-            return $ERR(WRIN, "INCORRECT USER INPUT WHILR GETTING VAL OF %c", VARS[ind].name);
-    }
-
-    return OK;
-}

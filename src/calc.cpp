@@ -24,15 +24,17 @@ errorStatus_e Calc(const char *inFileName)
     binTree_t tree = {};
     string_t  str  = {};
 
-    double *varsList = (double *) calloc(VARS_AMOUNT, sizeof(double));
+    bool   *varsExistList = (bool *)   calloc(VARS_AMOUNT, sizeof(bool  ));
+    double *varsList      = (double *) calloc(VARS_AMOUNT, sizeof(double));
     for (int i = 0; i < VARS_AMOUNT; i++)
         varsList[i] = NAN;
 
-    RUN_COMMAND(ReadDataAndCreateTree(&tree, &str, inFile, varsList), "PROBLEM WHILE CREATING TREE");
+    RUN_COMMAND(ReadDataAndCreateTree(&tree, &str, inFile, varsExistList), "PROBLEM WHILE CREATING TREE");
+    RUN_COMMAND(AddVarValue(varsList, varsExistList), "PROBLEM WHILE INITING VARS");
 
     double resVal = NAN;
     RUN_COMMAND(DoCalcOperations(tree.data, &resVal, varsList), "PROBLEM WHILE CALCULATION");
-    printf("%lg", resVal);
+    printf(GRN "CALC RESULT" COLOR_RESET ": <%lg>", resVal);
 
     $INFO("ending calculation process");
     return statusCode;
@@ -137,4 +139,20 @@ errorStatus_e DoCalcOperations(binTreeNode_t *node, double *outVal, double* varL
     default:
         break;
     }
+}
+
+errorStatus_e AddVarValue(double *varsList, bool *varsExistList)
+{
+    assert(varsList     );
+    assert(varsExistList);
+
+    for (int ind = 0; ind < VARS_AMOUNT; ind++) {
+        if (varsExistList[ind]) {
+            printf("What val you want %c to have: ", VARS[ind].name);
+            if (scanf("%lg", varsList + ind) != 1)
+                return $ERR(WRIN, "INCORRECT USER INPUT WHILR GETTING VAL OF %c", VARS[ind].name);
+        }
+    }
+
+    return OK;
 }

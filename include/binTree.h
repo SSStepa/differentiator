@@ -264,10 +264,9 @@ errorStatus_e TreePrintPostorder(const binTreeNode_t *node);
         TreeDump(&(tree));                              \
     )
 
-errorStatus_e ReadDataAndCreateTree(binTree_t *tree, string_t *inString, FILE *inFile, double *varsList);
-errorStatus_e AddNodeToTree(binTreeNode_t **ptrToConnect, char **ptrToRead, double *varsList);
-errorStatus_e GetNodeVal(binTreeNodeVal_t *outVal, char **ptrToRead, double *varsList);
-errorStatus_e AddVarValue(double *varsList, size_t ind);
+errorStatus_e ReadDataAndCreateTree(binTree_t *tree, string_t *inString, FILE *inFile, bool *varsExistList);
+errorStatus_e AddNodeToTree(binTreeNode_t **ptrToConnect, char **ptrToRead, bool *varsExistList);
+errorStatus_e GetNodeVal(binTreeNodeVal_t *outVal, char **ptrToRead, bool *varsExistList);
 bool CheckSymbolAndMove(char **ptrLineToCheck, char Symbol);
 
 #endif
