@@ -10,52 +10,110 @@ const int COMMAND_MAX_LEN = 120;
 
 #define MAX_IN_NODE 10
 
-// -------------------------- WRITING CODE ----------------------------------
-// enum calcNodeType_e {
-//     CONST_T,
-//     VAR_T,
-//     OP_T
-// };
+enum calcNodeType_e {
+    CONST_T,
+    VAR_T,
+    OP_T
+};
 
-// enum operations_e {
-//     OP_NULL  = 0,
-//     OP_ADD   = '+',
-//     OP_MULT  = '*',
-//     OP_SUB   = '-', 
-//     OP_DIV   = '/',
-//     OP_SIN   = 's',
+enum operations_e {
+    OP_NULL = -1,
+    OP_ADD,
+    OP_MULT,
+    OP_SUB, 
+    OP_DIV,
+    OP_DEG,
+    OP_LOG,
+    OP_SIN,
+    OP_COS,
+    OP_TAN,
+    OP_COT,
+    OP_ASIN,
+    OP_ACOS,
+    OP_ATAN,
+    OP_ACOT,
+    OP_SH,
+    OP_CH,
+    OP_TH,
+    OP_CTH,
+    OP_ASH,
+    OP_ACH,
+    OP_ATH,
+    OP_ACTH
+};
 
-// };
+struct operation_t {
+    operations_e  opCode;
+    const char    *name;
+};
 
-// struct operation_t {
-//     operations_e  opCode;
-//     char          *name;
-// };
+const operation_t OPERATIONS[] = {
+    {OP_ADD,   "+"     },
+    {OP_MULT,  "*"     },
+    {OP_SUB,   "-"     },
+    {OP_DIV,   "/"     },
+    {OP_DEG,   "^"     },
+    {OP_LOG,   "log"   },
+    {OP_SIN,   "sin"   },
+    {OP_COS,   "cos"   },
+    {OP_TAN,   "tan"   },
+    {OP_COT,   "cot"   },
+    {OP_ASIN,  "asin"  },
+    {OP_ACOS,  "acos"  },
+    {OP_ATAN,  "atan"  },
+    {OP_ACOT,  "acot"  },
+    {OP_SH,    "sh"    },
+    {OP_CH,    "ch"    },
+    {OP_TH,    "th"    },
+    {OP_CTH,   "cth"   },
+    {OP_ASH,   "ash"   },
+    {OP_ACH,   "ach"   },
+    {OP_ATH,   "ath"   },
+    {OP_ACTH,  "acth"  },
 
-// operation_t OPERATIONS[] = {
-//     {OP_ADD,   "+"  },
-//     {OP_MULT,  "*"  },
-//     {OP_SUB,   "-"  },
-//     {OP_DIV,   "/"  },
-//     {OP_SIN,   "sin"},
+    {OP_NULL,  ""      },
+};
 
-//     {OP_NULL,  "0"  },
-// };
+const int VARS_AMOUNT = 3;
+enum vars_e {
+    VAR_X,
+    VAR_Y,
+    VAR_Z,
+};
 
-// union nodeVal {
-//     double        constVal;
-//     operations_e  opVal;
-//     char          varVal;
-// };
+struct var_t {
+    vars_e     varCode;
+    const char name;
+};
 
-// struct calcNode_t {
-//     calcNodeType_e nodeType;
-//     nodeVal        nodeVal; 
-// };
-// typedef calcNode_t binTreeNodeVal_t;
-// #define PRINTF_NODE_VAL ("%lg" (node -> val).nodeVal)
-// -------------------------- WRITING CODE ----------------------------------
+const var_t VARS[] = {
+    {VAR_X, 'x'},
+    {VAR_Y, 'y'},
+    {VAR_Z, 'z'},
+};
 
+union nodeVal {
+    double        constVal;
+    operations_e  opVal;
+    vars_e        varVal;
+};
+
+struct calcNode_t {
+    calcNodeType_e nodeType;
+    nodeVal        nodeVal; 
+};
+
+typedef calcNode_t binTreeNodeVal_t;
+#define PRINTF_NODE_VAL ("%lg" (node -> val).nodeVal)
+
+//--------------------------- DSL ------------------------------------------
+
+#define NODE_T     (node -> val).nodeType
+#define NODE_CONST (node -> val).nodeVal.constVal
+#define NODE_VAR   (node -> val).nodeVal.varVal
+#define NODE_OP    (node -> val).nodeVal.opVal
+
+//--------------------------- DSL ----------------------------------------
 
 
 struct binTreeNode_t {
@@ -173,9 +231,10 @@ errorStatus_e TreePrintPostorder(const binTreeNode_t *node);
         TreeDump(&(tree));                              \
     )
 
-errorStatus_e ReadDataAndCreateTree(binTree_t *tree, string_t *inString, FILE *inFile);
-errorStatus_e AddNodeToTree(binTreeNode_t **ptrToConnect, char **ptrToRead);
-errorStatus_e GetNodeVal(binTreeNodeVal_t *outVal, char **ptrToRead);
+errorStatus_e ReadDataAndCreateTree(binTree_t *tree, string_t *inString, FILE *inFile, double *varsList);
+errorStatus_e AddNodeToTree(binTreeNode_t **ptrToConnect, char **ptrToRead, double *varsList);
+errorStatus_e GetNodeVal(binTreeNodeVal_t *outVal, char **ptrToRead, double *varsList);
+errorStatus_e AddVarValue(double *varsList, size_t ind);
 bool CheckSymbolAndMove(char **ptrLineToCheck, char Symbol);
 
 #endif

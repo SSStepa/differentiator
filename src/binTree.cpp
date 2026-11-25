@@ -111,7 +111,7 @@ errorStatus_e TreeNodeDump(const binTreeNode_t *node, FILE *outGraphvizFile, FIL
             LOG_PRINTF("const: %lg", (node -> val).nodeVal.constVal);
             break;
         case VAR_T:
-            fprintf(outGraphvizFile, "N%p [shape=Mrecord, label=\"{My addr: %p | var: %c | {left: %p | right: %p}}\", fillcolor=\"#C0C0FF\" color=\"#000080\"]\n",
+            fprintf(outGraphvizFile, "N%p [shape=Mrecord, label=\"{My addr: %p | var: %d | {left: %p | right: %p}}\", fillcolor=\"#C0C0FF\" color=\"#000080\"]\n",
                         node, node, (node -> val).nodeVal.varVal, node -> left, node -> right);
             LOG_PRINTF("var: %c", (node -> val).nodeVal.varVal);
             break;
@@ -170,7 +170,7 @@ errorStatus_e TreeNodeDelete(binTreeNode_t **deleteNodePtr)
     return OK;
 }
 
-errorStatus_e ReadDataAndCreateTree(binTree_t *tree, string_t *inString, FILE *inFile)
+errorStatus_e ReadDataAndCreateTree(binTree_t *tree, string_t *inString, FILE *inFile, double *varsList)
 {
     assert(tree);
     assert(inString);
@@ -187,7 +187,7 @@ errorStatus_e ReadDataAndCreateTree(binTree_t *tree, string_t *inString, FILE *i
 
     TREE_CTOR(tree);
 
-    RUN_COMMAND(AddNodeToTree(&(tree -> data), &(inString -> str)), "ERROR WHILE RECURSIVELY TRANSLATING STRING TO TREE");
+    RUN_COMMAND(AddNodeToTree(&(tree -> data), &(inString -> str), varsList), "ERROR WHILE RECURSIVELY TRANSLATING STRING TO TREE");
     inString -> str -= inString -> len; // put ptr back to first char
 
     TreeDump(tree);
@@ -196,7 +196,7 @@ errorStatus_e ReadDataAndCreateTree(binTree_t *tree, string_t *inString, FILE *i
     return statusCode;
 }
 
-errorStatus_e AddNodeToTree(binTreeNode_t **ptrToConnect, char **ptrToRead)
+errorStatus_e AddNodeToTree(binTreeNode_t **ptrToConnect, char **ptrToRead, double *varsList)
 {
     assert(ptrToRead);
     assert(*ptrToRead);
@@ -213,11 +213,11 @@ errorStatus_e AddNodeToTree(binTreeNode_t **ptrToConnect, char **ptrToRead)
     binTreeNode_t *dummyNode = 0;
 
     SkipSpaces(ptrToRead);
-    AddNodeToTree(&dummyNode, ptrToRead);
+    AddNodeToTree(&dummyNode, ptrToRead, varsList);
     SkipSpaces(ptrToRead);
 
     binTreeNodeVal_t val = {};
-    RUN_COMMAND(GetNodeVal(&val, ptrToRead), "PROBLEM WHILE GETTING NODE VAL INFO");
+    RUN_COMMAND(GetNodeVal(&val, ptrToRead, varsList), "PROBLEM WHILE GETTING NODE VAL INFO");
     RUN_COMMAND(TreeNodeCreate(val, ptrToConnect), "ERROR WHILE CREATING NODE");
     SkipSpaces(ptrToRead);
 
@@ -225,7 +225,7 @@ errorStatus_e AddNodeToTree(binTreeNode_t **ptrToConnect, char **ptrToRead)
         (**ptrToConnect).left = dummyNode;
 
     if (val.nodeType == OP_T)
-        RUN_COMMAND(AddNodeToTree(&((*ptrToConnect) -> right), ptrToRead), "PROBLEM WHILE ADDING RIGHT SON(ALL FUNCTIONS HAVE IT)");
+        RUN_COMMAND(AddNodeToTree(&((*ptrToConnect) -> right), ptrToRead, varsList), "PROBLEM WHILE ADDING RIGHT SON(ALL FUNCTIONS HAVE IT)");
 
     if (!CheckSymbolAndMove(ptrToRead, ')'))
         return $ERR(WRIN, "NO CLOSIND ) FOR NODE");
@@ -246,7 +246,7 @@ bool CheckSymbolAndMove(char **ptrLineToCheck, char Symbol)
     return true;
 }
 
-errorStatus_e GetNodeVal(binTreeNodeVal_t *outVal, char **ptrToRead)
+errorStatus_e GetNodeVal(binTreeNodeVal_t *outVal, char **ptrToRead, double *varsList)
 {
     assert(outVal);
     assert(ptrToRead);
@@ -262,7 +262,6 @@ errorStatus_e GetNodeVal(binTreeNodeVal_t *outVal, char **ptrToRead)
         if (sscanf(*ptrToRead, "%" NUM_TO_STR(MAX_IN_NODE) "[^ \t\n()]%n", buff, &readLen) != 1) {
             return $ERR(WRIN, "INCORRECT USER INPUT");
         }
-        printf("<%s>\n", buff);
        
         size_t ind = 0;
         for (; OPERATIONS[ind].opCode != OP_NULL; ind++) {
@@ -275,12 +274,32 @@ errorStatus_e GetNodeVal(binTreeNodeVal_t *outVal, char **ptrToRead)
         if (OPERATIONS[ind].opCode == OP_NULL) {
             if (readLen == 1) {
                 outVal  -> nodeType        = VAR_T;
-                (outVal -> nodeVal).varVal = *buff;
+                for (ind = 0; ind < VARS_AMOUNT; ind++) {
+                    if (*buff == VARS[ind].name) {
+                        (outVal -> nodeVal).varVal = VARS[ind].varCode;
+                        AddVarValue(varsList, ind);
+                        break;
+                    }
+                }
+                if (ind == VARS_AMOUNT) return $ERR(WRIN, "UNSUPPORTED VAR USED %c", *buff);
             }
             else return $ERR(WRIN, "INCORRECT NODE FORMAT");
         }
     }
     *ptrToRead += readLen;
+
+    return OK;
+}
+
+errorStatus_e AddVarValue(double *varsList, size_t ind)
+{
+    assert(varsList);
+
+    if (isnan(varsList[ind])) {
+        printf("What val you want %c to have: ", VARS[ind].name);
+        if (scanf("%lg", varsList + ind) != 1)
+            return $ERR(WRIN, "INCORRECT USER INPUT WHILR GETTING VAL OF %c", VARS[ind].name);
+    }
 
     return OK;
 }
