@@ -32,7 +32,8 @@ errorStatus_e LogPrintf(const char *messageType, const char *errMess, int line, 
     assert(errMess);
     assert(file);
 
-    LOG_START();
+    logFiles_t logs = {};
+    LOGS_START();
 
     time_t rawtime;
     struct tm *timeinfo;
@@ -52,7 +53,7 @@ errorStatus_e LogPrintf(const char *messageType, const char *errMess, int line, 
     #endif
 
 
-    LOG_PRINTF("<h2>[%s] %s %s:%d: %s:%d %s</h2>\n", time_str, messageType, file, line, TO_STR(ErrCode), ErrCode, errMessText);
+    fprintf(logs.logFile, "<h2>[%s] %s %s:%d: %s:%d %s</h2>\n", time_str, messageType, file, line, TO_STR(ErrCode), ErrCode, errMessText);
 
     LOG_END();
 

@@ -3,9 +3,6 @@
 
 #include "basic.h"
 
-const char *const GRAPHVIZ_TEXT_FILE = "graphvizInfo.txt";
-const char *const GRAPHVIZ_OUT_BASE  = "dumpGraphviz";
-
 const int COMMAND_MAX_LEN = 120;
 
 #define MAX_IN_NODE 10
@@ -117,7 +114,7 @@ typedef calcNode_t binTreeNodeVal_t;
 
 // -------------------------- Latex printf --------------------------------
 
-const char const *OUT_CLEVER_WORDS[] = {
+const char *const OUT_CLEVER_WORDS[] = {
     "Нетрудно заметить что:\n",
     "Простыми математическими преобразованиями:\n",
     "Проделав несколько простых вычислений:\n",
@@ -135,13 +132,15 @@ const char const *OUT_CLEVER_WORDS[] = {
     "Понизив степень и сгруппировав слагаемые, без труда находим:\n",
     "Учитывая вышесказанное, в два счёта получаем:\n",
     "Пропуская скучные промежуточные выкладки:\n",
-    "Из базовых свойств дифференцирования мгновенно вытекает:\n"
-
+    "Из базовых свойств дифференцирования мгновенно вытекает:\n",
+    "Пользуясь уже имеющимся мат аппаратом:\n",
+    "Применяя школьные знания:\n",
 };
 
-const char const *OUT_SKIP_WORDS[] = {
+const char *const OUT_SKIP_WORDS[] = {
     "Дальнейшие вычисления оставим читателю в качестве простого упражнения, сразу записав ответ:\n",
     "Очевидно, что:\n",
+    "Опустив немного рутины, очевидной любому внимательному читателю:\n"
 };
 // -------------------------- !Latex printf --------------------------------
 
@@ -188,15 +187,20 @@ errorStatus_e TreeDtor(binTree_t *tree);
  * @param [in] tree tree to dump
  */
 errorStatus_e TreeDump(const binTree_t *tree);
+errorStatus_e OutTreeInfo(const binTree_t *tree, logFiles_t *logs);
 
+errorStatus_e ConstNodeDump(const binTreeNode_t *node, logFiles_t *logs);
+errorStatus_e VarNodeDump(const binTreeNode_t *node, logFiles_t *logs);
+errorStatus_e OpNodeDump(const binTreeNode_t *node, logFiles_t *logs);
 
 /**
  * Recursive function to dump one node
  * As a result dumps all tree to graphviz and out.
  * 
  * @param [in] node node to dump
+ * @param [in] logs struct with different log files
  */
-errorStatus_e TreeNodeDump(const binTreeNode_t *node, FILE *outGraphvizFile, FILE *logFile);
+errorStatus_e TreeNodeDump(const binTreeNode_t *node, logFiles_t *logs);
 
 /**
  * Creates node and gives value to it.

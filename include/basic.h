@@ -163,18 +163,35 @@ errorStatus_e EndError();
 #define $ERR(ErrCode, ErrorMessage, ...)         LogPrintf("<font color=red>ERROR</font>", ErrorMessage, __LINE__, __FILE__, ErrCode, ##__VA_ARGS__)
 #define $INFO(InfoMessage, ...)           ON_DBG(LogPrintf("<font color=blue>INFO</font>", InfoMessage, __LINE__, __FILE__, OK,  ##__VA_ARGS__))
 
- 
+const char *const GRAPHVIZ_TEXT_FILE = "graphvizInfo.txt";
+const char *const GRAPHVIZ_OUT_BASE  = "dumpGraphviz";
 
-#define LOG_START()                              \
-    FILE *logFile = fopen(LOG_FILE, "a");        
+const char *const LATEX_TEXT_FILE    = "latexOutFile.tex";
 
-#define LOG_END()                                \
-    fclose(logFile);                             
+#define LOGS_START()                                     \
+    logs.logFile       = fopen(LOG_FILE,           "a"); \
+    logs.graphvizFile  = fopen(GRAPHVIZ_TEXT_FILE, "w"); \
+    logs.latexFile     = fopen(LATEX_TEXT_FILE,    "w"); \
+    assert(logs.logFile     );                           \
+    assert(logs.graphvizFile);                           \
+    assert(logs.latexFile   );
+
+#define LOG_END()              \
+    fclose(logs.logFile     ); \
+    fclose(logs.graphvizFile); \
+    fclose(logs.latexFile   );
 
 
 #define LOG_PRINTF(...) \
-    fprintf(logFile, __VA_ARGS__); \
-    fflush(logFile);
+    fprintf(logs -> logFile, __VA_ARGS__); \
+    fflush(logs -> logFile);
+
+
+struct logFiles_t {
+    FILE *logFile;
+    FILE *graphvizFile;
+    FILE *latexFile;
+};
 
 #define DEBUGGER
 

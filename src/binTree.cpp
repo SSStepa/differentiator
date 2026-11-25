@@ -52,49 +52,60 @@ errorStatus_e TreeDump(const binTree_t *tree)
     assert(tree);
 
     errorStatus_e statusCode = OK;
-    LOG_START();
-
     $INFO("Starting dump of tree <%s>", (tree -> debuggingData).variableName);
-    
-    ON_DBG(
-        LOG_PRINTF("Hi, I'm dump off tree called because of err:%d and has err message <%s>\n", (tree -> debuggingData).err, (tree -> debuggingData).errorText);
-    )
 
-    FILE *graphvizOutFile = fopen(GRAPHVIZ_TEXT_FILE, "w");
-    if (graphvizOutFile == NULL) {
-        return $ERR(FILEERR, "CAN'T OPEN GRAPHVIZ TEXT FILE");
-    }
+    logFiles_t logs = {};
 
-    fprintf(graphvizOutFile, "digraph {\n");
-    fprintf(graphvizOutFile, "node [shape=Mcircle, style=filled, color=\"#800000\", fillcolor=\"#FF0000\"];\n");
-    fprintf(graphvizOutFile, "edge [arrowsize=0.8, color=\"#030352\", penwidth=1];\n");
+    LOGS_START();
+    RUN_COMMAND(OutTreeInfo(tree, &logs), "PROBLEM WHILE OUTING TREE");
+    LOG_END();
 
     static size_t dumpNumber = 0;
     dumpNumber++;
-    TreeNodeDump(tree -> data, graphvizOutFile, logFile);
-
-    ON_DBG(
-        if (tree -> ptrToLastUsedNode)
-            fprintf(graphvizOutFile, "N%p [color=\"#9e4f05\", fillcolor=\"#fa8d3f\"]\n", tree -> ptrToLastUsedNode);
-    )
-    fprintf(graphvizOutFile, "}\n");
-    fclose(graphvizOutFile);
 
     char commandName[COMMAND_MAX_LEN] = {};
-    sprintf(commandName, "iconv -f CP1251 -t UTF-8 %s >RECODE%s", GRAPHVIZ_TEXT_FILE, GRAPHVIZ_TEXT_FILE);
-    system(commandName);
-    sprintf(commandName, "\"\"C:\\Program Files\\Graphviz\\bin\\dot.exe\" RECODE%s -Tpng -o .\\%s%zu.png\"", GRAPHVIZ_TEXT_FILE, GRAPHVIZ_OUT_BASE, dumpNumber);
+    sprintf(commandName, "\"\"C:\\Program Files\\Graphviz\\bin\\dot.exe\" %s -Tpng -o .\\%s%zu.png\"", GRAPHVIZ_TEXT_FILE, GRAPHVIZ_OUT_BASE, dumpNumber);
     system(commandName);
 
-    LOG_END();
     $INFO("Ending dump of stack <%s>", (tree -> debuggingData).variableName);
     return statusCode;
 }
 
-errorStatus_e TreeNodeDump(const binTreeNode_t *node, FILE *outGraphvizFile, FILE *logFile)
+errorStatus_e OutTreeInfo(const binTree_t *tree, logFiles_t *logs)
 {
-    assert(outGraphvizFile);
-    assert(logFile);
+    assert(tree);
+    assert(logs);
+
+    errorStatus_e statusCode = OK;
+
+    ON_DBG(
+        LOG_PRINTF("Hi, I'm dump off tree called because of err:%d and has err message <%s>\n", (tree -> debuggingData).err, (tree -> debuggingData).errorText);
+    )
+
+    fprintf(logs -> graphvizFile, "digraph {\n");
+    fprintf(logs -> graphvizFile, "node [shape=Mcircle, style=filled, color=\"#800000\", fillcolor=\"#FF0000\"];\n");
+    fprintf(logs -> graphvizFile, "edge [arrowsize=0.8, color=\"#030352\", penwidth=1];\n");
+
+    fprintf(logs -> latexFile, "\\documentclass[a4paper, 12pt]{article}\n");
+    fprintf(logs -> latexFile, "\\usepackage[utf8]{inputenc}\n");
+    fprintf(logs -> latexFile, "\\usepackage[T2A]{fontenc}\n");
+    fprintf(logs -> latexFile, "\\usepackage[russian]{babel}\n");
+    fprintf(logs -> latexFile, "\\usepackage{amsmath, amssymb, amsfonts}\n");
+    fprintf(logs -> latexFile, "\\usepackage[left=2cm, right=2cm, top=2cm, bottom=2cm]{geometry}\n");
+    fprintf(logs -> latexFile, "\\begin{document}\n");
+
+    TreeNodeDump(tree -> data, logs);
+
+    fprintf(logs -> graphvizFile, "}\n");
+
+    fprintf(logs -> latexFile, "\\end{document}\n");
+
+    return statusCode;
+}
+
+errorStatus_e TreeNodeDump(const binTreeNode_t *node, logFiles_t *logs)
+{
+    assert(logs);
 
     errorStatus_e statusCode = OK;
 
@@ -102,36 +113,63 @@ errorStatus_e TreeNodeDump(const binTreeNode_t *node, FILE *outGraphvizFile, FIL
         return OK;
     
     LOG_PRINTF("(");
-    RUN_COMMAND(TreeNodeDump(node -> left, outGraphvizFile, logFile), "PROBLEM WHILE PRINTING LEFT CHILD");
+    RUN_COMMAND(TreeNodeDump(node -> left, logs), "PROBLEM WHILE PRINTING LEFT CHILD");
 
-    switch((node -> val).nodeType) {
-        case CONST_T:
-            fprintf(outGraphvizFile, "N%p [shape=Mrecord, label=\"{My addr: %p | const val: %lg | {left: %p | right: %p}}\", fillcolor=\"#C0C0FF\" color=\"#000080\"]\n",
-                        node, node, (node -> val).nodeVal.constVal, node -> left, node -> right);
-            LOG_PRINTF("const: %lg", (node -> val).nodeVal.constVal);
-            break;
-        case VAR_T:
-            fprintf(outGraphvizFile, "N%p [shape=Mrecord, label=\"{My addr: %p | var: %d | {left: %p | right: %p}}\", fillcolor=\"#C0C0FF\" color=\"#000080\"]\n",
-                        node, node, (node -> val).nodeVal.varVal, node -> left, node -> right);
-            LOG_PRINTF("var: %c", (node -> val).nodeVal.varVal);
-            break;
-        case OP_T:
-            fprintf(outGraphvizFile, "N%p [shape=Mrecord, label=\"{My addr: %p | OP: %c | {left: %p | right: %p}}\", fillcolor=\"#C0C0FF\" color=\"#000080\"]\n",
-                        node, node, (node -> val).nodeVal.opVal, node -> left, node -> right);
-            LOG_PRINTF("op: %c", (node -> val).nodeVal.opVal);
-            break;
+    switch(NODE_T) {
+        case CONST_T: ConstNodeDump(node, logs);   break;
+        case VAR_T:   VarNodeDump  (node, logs);   break;
+        case OP_T:    OpNodeDump   (node, logs);   break;
         default:
             return $ERR(WRIN, "UNSUPPORTED NODE TYPE");
     }
 
     if (node -> left)
-        fprintf(outGraphvizFile, "N%p -> N%p\n", node, node -> left);
+        fprintf(logs -> graphvizFile, "N%p -> N%p\n", node, node -> left);
     if (node -> right)
-        fprintf(outGraphvizFile, "N%p -> N%p\n", node, node -> right);
+        fprintf(logs -> graphvizFile, "N%p -> N%p\n", node, node -> right);
 
-    RUN_COMMAND(TreeNodeDump(node -> right, outGraphvizFile, logFile), "PROBLEM WHILE PRINTING RIGHT CHILD");
+    RUN_COMMAND(TreeNodeDump(node -> right, logs), "PROBLEM WHILE PRINTING RIGHT CHILD");
     LOG_PRINTF(")");
 
+    return OK;
+}
+
+errorStatus_e ConstNodeDump(const binTreeNode_t *node, logFiles_t *logs)
+{
+    assert(node);
+    assert(logs);
+    $INFO("starting loging node %p as a const", node);
+
+    fprintf(logs -> graphvizFile, "N%p [shape=record, label=\"{%lg}\", fillcolor=\"#C0C0FF\" color=\"#000080\"]\n", node, NODE_CONST);
+    LOG_PRINTF("const: %lg", NODE_CONST);
+
+    $INFO("ending loging node %p as a const", node);
+    return OK;
+}
+
+errorStatus_e VarNodeDump(const binTreeNode_t *node, logFiles_t *logs)
+{
+    assert(node);
+    assert(logs);
+    $INFO("starting loging node %p as a var", node);
+
+    fprintf(logs -> graphvizFile, "N%p [shape=Mrecord, label=\"{%c}\", fillcolor=\"#3feb81\" color=\"#025a17\"]\n", node, VARS[NODE_VAR].name);
+    LOG_PRINTF("var: %c", VARS[NODE_VAR].name);
+
+    $INFO("ending loging node %p as a var", node);
+    return OK;
+}
+
+errorStatus_e OpNodeDump(const binTreeNode_t *node, logFiles_t *logs)
+{
+    assert(node);
+    assert(logs);
+    $INFO("starting loging node %p as an operator", node);
+
+    fprintf(logs -> graphvizFile, "N%p [shape=circle, label=\"%s\", fillcolor=\"#cd09d0\" color=\"#3c0367\"]\n", node, OPERATIONS[NODE_OP].name);
+    LOG_PRINTF("op: %s", OPERATIONS[NODE_OP].name);
+
+    $INFO("ending loging node %p as an operator", node);
     return OK;
 }
 
