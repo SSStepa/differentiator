@@ -311,6 +311,132 @@ errorStatus_e DiffOpAcot(binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars
     return statusCode;
 }
 
+// (sh(u))' = u'*ch(u)
+errorStatus_e DiffOpSh(binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff)
+{
+    assert(inNode);
+    assert(outNodePtr);
+    errorStatus_e statusCode = OK;
+
+    INIT_OP(OP_MULT);
+        DIFF_R(&OUT_L);
+        INIT_SUB_OP(OP_CH, &OUT_R);
+            COPY_R(&OUT_RR);
+
+    return statusCode;
+}
+
+// (ch(u))' = u'*sh(u)
+errorStatus_e DiffOpCh(binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff)
+{
+    assert(inNode);
+    assert(outNodePtr);
+    errorStatus_e statusCode = OK;
+
+    INIT_OP(OP_MULT);
+        DIFF_R(&OUT_L);
+        INIT_SUB_OP(OP_SH, &OUT_R);
+            COPY_R(&OUT_RR);
+
+    return statusCode;
+}
+
+// (th(u))' = (u')/ch(u)^2
+errorStatus_e DiffOpTh(binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff)
+{
+    assert(inNode);
+    assert(outNodePtr);
+    errorStatus_e statusCode = OK;
+
+    INIT_OP(OP_DIV);
+        DIFF_R(&OUT_L);
+        INIT_SUB_OP(OP_DEG, &OUT_R);
+            INIT_SUB_OP(OP_CH, &OUT_RL);
+                COPY_R(&R(OUT_RL));
+            INIT_SUB_CONST(2, &OUT_RR);
+
+
+    return statusCode;
+}
+
+// (cth(u))' = -1*(u')/sh(u)^2
+errorStatus_e DiffOpCth(binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff)
+{
+    assert(inNode);
+    assert(outNodePtr);
+    errorStatus_e statusCode = OK;
+
+    INIT_OP(OP_DIV);
+        INIT_SUB_OP(OP_MULT, &OUT_L);
+            INIT_SUB_CONST(-1, &OUT_LL);
+            DIFF_R(&OUT_LR);
+        INIT_SUB_OP(OP_DEG, &OUT_R);
+            INIT_SUB_OP(OP_SH, &OUT_RL);
+                COPY_R(&R(OUT_RL));
+            INIT_SUB_CONST(2, &OUT_RR);
+
+
+    return statusCode;
+}
+
+// (arcsh(u))' = u'/(sqrt(1 + u^2))
+errorStatus_e DiffOpAsh(binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff)
+{
+    assert(inNode);
+    assert(outNodePtr);
+    errorStatus_e statusCode = OK;
+
+    INIT_OP(OP_DIV);
+        DIFF_R(&OUT_L);
+        INIT_SUB_OP(OP_DEG, &OUT_R);
+            INIT_SUB_OP(OP_ADD, &OUT_RL);
+                INIT_SUB_CONST(1, &L(OUT_RL));
+                INIT_SUB_OP(OP_DEG, &R(OUT_RL));
+                    COPY_R(&L(R(OUT_RL)));
+                    INIT_SUB_CONST(2, &R(R(OUT_RL)));
+            INIT_SUB_CONST(0.5, &OUT_RR);
+
+    return statusCode;
+}
+
+// (arcch(u))' = u'/(sqrt(-1 + u^2))
+errorStatus_e DiffOpAch(binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff)
+{
+    assert(inNode);
+    assert(outNodePtr);
+    errorStatus_e statusCode = OK;
+
+    INIT_OP(OP_DIV);
+        DIFF_R(&OUT_L);
+        INIT_SUB_OP(OP_DEG, &OUT_R);
+            INIT_SUB_OP(OP_ADD, &OUT_RL);
+                INIT_SUB_CONST(-1, &L(OUT_RL));
+                INIT_SUB_OP(OP_DEG, &R(OUT_RL));
+                    COPY_R(&L(R(OUT_RL)));
+                    INIT_SUB_CONST(2, &R(R(OUT_RL)));
+            INIT_SUB_CONST(0.5, &OUT_RR);
+
+    return statusCode;
+}
+
+// (arcth(u))' = (arccthu))' = u'/(1 - u^2)) 
+errorStatus_e DiffOpAthOrActh(binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff)
+{
+    assert(inNode);
+    assert(outNodePtr);
+    errorStatus_e statusCode = OK;
+
+    INIT_OP(OP_DIV);
+        DIFF_R(&OUT_L);
+        INIT_SUB_OP(OP_SUB, &OUT_R);
+            INIT_SUB_CONST(1, &OUT_RL);
+            INIT_SUB_OP(OP_DEG, &OUT_RR);
+                COPY_R(&L(OUT_RR));
+                INIT_SUB_CONST(2, &R(OUT_RR));
+
+    return statusCode;
+}
+
 errorStatus_e CopyTreeNode(binTreeNode_t *inNode, binTreeNode_t **outNodePtr)
 {
     assert(outNodePtr);
