@@ -24,8 +24,12 @@
 #define OUT_RL    (((*outNodePtr) -> right) -> left )
 #define OUT_RR    (((*outNodePtr) -> right) -> right)
 
-#define L(ptr) ((ptr) -> left)
-#define R(ptr) ((ptr) -> right)
+#define L(ptr)   ((ptr) -> left)
+#define R(ptr)   ((ptr) -> right)
+#define T(ptr)   (((ptr) -> val).nodeType)
+#define C(ptr)   (((ptr) -> val).nodeVal.constVal)
+#define VAR(ptr) (((ptr) -> val).nodeVal.varVal)
+#define OP(ptr)  (((ptr) -> val).nodeVal.opVal)
 
 #define INIT_CONST(cVal)  binTreeNodeVal_t val = {};     \
                     val.nodeType         = CONST_T;      \
@@ -56,8 +60,10 @@
 #define DIFF_L(conPtr)    RUN_COMMAND(Diff(IN_L, conPtr, varToDiff), "PROBLEM WHILE DIFF FIND");
 #define DIFF_R(conPtr)    RUN_COMMAND(Diff(IN_R, conPtr, varToDiff), "PROBLEM WHILE DIFF FIND");
 
-#define COPY_L(conPtr)    RUN_COMMAND(CopyTreeNode(IN_L, conPtr), "PROBLEM WHILE COPYING LEFT SON TO NEW TREE");
-#define COPY_R(conPtr)    RUN_COMMAND(CopyTreeNode(IN_R, conPtr), "PROBLEM WHILE COPYING LEFT SON TO NEW TREE");
+#define COPY_NODE(conPtr)    RUN_COMMAND(CopyTreeNode(inNode, conPtr), "PROBLEM WHILE COPYING LEFT SON TO NEW TREE");
+#define COPY_L(conPtr)       RUN_COMMAND(CopyTreeNode(IN_L, conPtr  ), "PROBLEM WHILE COPYING LEFT SON TO NEW TREE");
+#define COPY_R(conPtr)       RUN_COMMAND(CopyTreeNode(IN_R, conPtr  ), "PROBLEM WHILE COPYING LEFT SON TO NEW TREE");
+
 // -------------------  !DSL --------------------------------------
 
 errorStatus_e FindDerivative(const char *inFileName);
@@ -113,7 +119,6 @@ errorStatus_e (*const diffFuncList[])(binTreeNode_t *inNode, binTreeNode_t **out
     DiffOpCth,
     DiffOpAsh,
     DiffOpAch,
-    DiffOpAthOrActh,
     DiffOpAthOrActh,
 };
 

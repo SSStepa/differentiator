@@ -159,6 +159,100 @@ errorStatus_e DiffOpDiv(binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_
     return statusCode;
 }
 
+// (u^v)' = (u^v)(v'ln(u) + vu'/u) but some special cases: (c^c) = 0 (u^c)' = cu^(c-1)u'  (c^u)' = c^u*lnc*u'
+errorStatus_e DiffOpDeg(binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff)
+{
+    assert(inNode);
+    assert(outNodePtr);
+    errorStatus_e statusCode = OK;
+
+    if (T(IN_L) == CONST_T && T(IN_R) == CONST_T) {
+        INIT_CONST(0);
+    }
+    else if (T(IN_R) == CONST_T) {
+        INIT_OP(OP_MULT);
+            INIT_SUB_OP(OP_MULT, &OUT_L);
+                DIFF_L(&OUT_LL);
+                INIT_SUB_CONST(C(IN_R), &OUT_LR);
+            INIT_SUB_OP(OP_DEG, &OUT_R);
+                COPY_L(&OUT_RL);
+                INIT_SUB_CONST(C(IN_R) - 1, &OUT_RR);
+    }
+    else if (T(IN_L) == CONST_T) {
+        INIT_OP(OP_MULT);
+            INIT_SUB_OP(OP_DEG, &OUT_L);
+                INIT_SUB_CONST(C(IN_L), &OUT_LL);
+                COPY_R(&OUT_LR);
+            INIT_SUB_OP(OP_MULT, &OUT_R);
+                DIFF_R(&OUT_RL);
+                INIT_SUB_OP(OP_LOG, &OUT_RR);
+                    INIT_SUB_CONST(M_E, &L(OUT_RR));
+                    INIT_SUB_CONST(C(IN_L), &R(OUT_RR));
+    }
+    else {
+        INIT_OP(OP_MULT);
+            COPY_NODE(&OUT_L);
+            INIT_SUB_OP(OP_ADD, &OUT_R);
+                INIT_SUB_OP(OP_MULT, &OUT_RL);
+                    DIFF_R(&L(OUT_RL));
+                    INIT_SUB_OP(OP_LOG, &R(OUT_RL));
+                        INIT_SUB_CONST(M_E, &L(R(OUT_RL)));
+                        COPY_L(&R(R(OUT_RL)));
+                INIT_SUB_OP(OP_DIV, &OUT_RR);
+                    INIT_SUB_OP(OP_MULT, &L(OUT_RR));
+                        COPY_R(&R(L(OUT_RR)));
+                        DIFF_L(&L(L(OUT_RR)));
+                    COPY_L(&R(OUT_RR));
+    }
+    return statusCode;
+}
+
+// (u log v)' = (log_u(v))' = (lnv/lnu)' = ((v'/v)lnu - (u'/u)lnv)/lnu^2
+// special cases: (log_c(c))' = 0  (log_c(u))' = u'/(u lnc)
+errorStatus_e DiffOpLog(binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff)
+{
+    assert(inNode);
+    assert(outNodePtr);
+    errorStatus_e statusCode = OK;
+
+    if (T(IN_L) == CONST_T && T(IN_R) == CONST_T) {
+        INIT_CONST(0);
+    }
+    else if (T(IN_L) == CONST_T) {
+        INIT_OP(OP_DIV);
+            DIFF_R(&OUT_L);
+            INIT_SUB_OP(OP_MULT, &OUT_R);
+                COPY_R(&OUT_RL);
+                INIT_SUB_OP(OP_LOG, &OUT_RR);
+                    INIT_SUB_CONST(M_E, &L(OUT_RR));
+                    INIT_SUB_CONST(C(IN_L), &R(OUT_RR));
+    }
+    else {
+        INIT_OP(OP_DIV);
+            INIT_SUB_OP(OP_SUB, &OUT_L);
+                INIT_SUB_OP(OP_MULT, &OUT_LL);
+                    INIT_SUB_OP(OP_DIV, &L(OUT_LL));
+                        DIFF_R(&L(L(OUT_LL)));
+                        COPY_R(&R(L(OUT_LL)));
+                    INIT_SUB_OP(OP_LOG, &R(OUT_LL));
+                        INIT_SUB_CONST(M_E, &L(R(OUT_LL)));
+                        COPY_L(&R(R(OUT_LL)));
+                INIT_SUB_OP(OP_MULT, &OUT_LR);
+                    INIT_SUB_OP(OP_DIV, &L(OUT_LR));
+                        DIFF_L(&L(L(OUT_LR)));
+                        COPY_L(&R(L(OUT_LR)));
+                    INIT_SUB_OP(OP_LOG, &R(OUT_RL));
+                        INIT_SUB_CONST(M_E, &L(R(OUT_LR)));
+                        COPY_R(&R(R(OUT_LR)));
+            INIT_SUB_OP(OP_DEG, &OUT_R);
+                INIT_SUB_OP(OP_LOG, &OUT_RL);
+                    INIT_SUB_CONST(M_E, &L(OUT_RL));
+                    COPY_L(&R(OUT_RL));
+                INIT_SUB_CONST(2, &OUT_RR);
+    }
+    return statusCode;
+}
+
 // (sin(u))' = cos(u)*u'
 errorStatus_e DiffOpSin(binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff)
 {
