@@ -301,6 +301,7 @@ errorStatus_e GetNodeVal(binTreeNodeVal_t *outVal, char **ptrToRead, bool *varsE
     } else {
         char *buff = (char *) calloc(MAX_IN_NODE, sizeof(char));
         if (sscanf(*ptrToRead, "%" NUM_TO_STR(MAX_IN_NODE) "[^ \t\n()]%n", buff, &readLen) != 1) {
+            free(buff);
             return $ERR(WRIN, "INCORRECT USER INPUT");
         }
        
@@ -326,6 +327,7 @@ errorStatus_e GetNodeVal(binTreeNodeVal_t *outVal, char **ptrToRead, bool *varsE
             }
             else return $ERR(WRIN, "INCORRECT NODE FORMAT");
         }
+        free(buff);
     }
     *ptrToRead += readLen;
 
