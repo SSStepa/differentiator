@@ -24,6 +24,9 @@
 #define OUT_RL    (((*outNodePtr) -> right) -> left )
 #define OUT_RR    (((*outNodePtr) -> right) -> right)
 
+#define L(ptr) ((ptr) -> left)
+#define R(ptr) ((ptr) -> right)
+
 #define INIT_CONST(cVal)  binTreeNodeVal_t val = {};     \
                     val.nodeType         = CONST_T;      \
                     val.nodeVal.constVal = cVal;         \
@@ -67,16 +70,52 @@ errorStatus_e DiffConst(binTreeNode_t **outNodePtr);
 errorStatus_e DiffVar(vars_e var, binTreeNode_t **outNodePtr, vars_e varToDiff);
 errorStatus_e DiffOp(binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
 
-errorStatus_e DiffOpSum (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
-errorStatus_e DiffOpMult(binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
-errorStatus_e DiffOpSub (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
-errorStatus_e DiffOpDiv (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpSum  (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpMult (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpSub  (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpDiv  (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpDeg  (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpLog  (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpSin  (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpCos  (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpTan  (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpCot  (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpAsin (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpAcos (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpAtan (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpAcot (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpSh   (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpCh   (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpTh   (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpCth  (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpAsh  (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpAch  (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpAth  (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+errorStatus_e DiffOpActh (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
 
 errorStatus_e (*const diffFuncList[])(binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff) = {
     DiffOpSum,
     DiffOpMult,
     DiffOpSub,
     DiffOpDiv,
+    DiffOpDeg,
+    DiffOpLog,
+    DiffOpSin,
+    DiffOpCos,
+    DiffOpTan,
+    DiffOpCot,
+    DiffOpAsin,
+    DiffOpAcos,
+    DiffOpAtan,
+    DiffOpAcot,
+    DiffOpSh,
+    DiffOpCh,
+    DiffOpTh,
+    DiffOpCth,
+    DiffOpAsh,
+    DiffOpAch,
+    DiffOpAth,
+    DiffOpActh,
 };
 
 #endif
