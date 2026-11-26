@@ -24,8 +24,9 @@ errorStatus_e Calc(const char *inFileName)
     binTree_t tree = {};
     string_t  str  = {};
 
-    bool   *varsExistList = (bool *)   calloc(VARS_AMOUNT, sizeof(bool  ));
-    double *varsList      = (double *) calloc(VARS_AMOUNT, sizeof(double));
+    bool   varsExistList[VARS_AMOUNT] = {};
+    double varsList[VARS_AMOUNT]      = {};
+
     for (int i = 0; i < VARS_AMOUNT; i++)
         varsList[i] = NAN;
 
