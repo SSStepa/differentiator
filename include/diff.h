@@ -64,6 +64,11 @@
 #define COPY_L(conPtr)       RUN_COMMAND(CopyTreeNode(IN_L, conPtr  ), "PROBLEM WHILE COPYING LEFT SON TO NEW TREE");
 #define COPY_R(conPtr)       RUN_COMMAND(CopyTreeNode(IN_R, conPtr  ), "PROBLEM WHILE COPYING LEFT SON TO NEW TREE");
 
+
+#define REPLACE_WITH(val)                  \
+                TreeNodeDelete(node);      \
+                INIT_SUB_CONST(val, node);
+
 // -------------------  !DSL --------------------------------------
 
 errorStatus_e FindDerivative(const char *inFileName);
@@ -97,6 +102,10 @@ errorStatus_e DiffOpCth        (binTreeNode_t *inNode, binTreeNode_t **outNodePt
 errorStatus_e DiffOpAsh        (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
 errorStatus_e DiffOpAch        (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
 errorStatus_e DiffOpAthOrActh  (binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff);
+
+errorStatus_e ConstFold(binTreeNode_t *inNode);
+errorStatus_e AlgebraSimpl(binTreeNode_t **node);
+errorStatus_e RelocateNode(binTreeNode_t **node, binTreeNode_t *delNode, binTreeNode_t *reconNode);
 
 errorStatus_e (*const diffFuncList[])(binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_e varToDiff) = {
     DiffOpSum,

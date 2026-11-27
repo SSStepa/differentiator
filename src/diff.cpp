@@ -27,6 +27,14 @@ errorStatus_e FindDerivative(const char *inFileName)
 
     TreeDump(&outTree);
 
+    bool IsChanged = false;
+    do {
+        ConstFold(outTree.data);
+        AlgebraSimpl(&outTree.data);
+    } while (IsChanged);
+
+    TreeDump(&outTree);
+
     TreeDtor(&inTree);
     TreeDtor(&outTree);
 
@@ -241,7 +249,7 @@ errorStatus_e DiffOpLog(binTreeNode_t *inNode, binTreeNode_t **outNodePtr, vars_
                     INIT_SUB_OP(OP_DIV, &L(OUT_LR));
                         DIFF_L(&L(L(OUT_LR)));
                         COPY_L(&R(L(OUT_LR)));
-                    INIT_SUB_OP(OP_LOG, &R(OUT_RL));
+                    INIT_SUB_OP(OP_LOG, &R(OUT_LR));
                         INIT_SUB_CONST(M_E, &L(R(OUT_LR)));
                         COPY_R(&R(R(OUT_LR)));
             INIT_SUB_OP(OP_DEG, &OUT_R);
@@ -572,5 +580,111 @@ errorStatus_e GetVarToDiff(bool *varsExistList, vars_e *resVar)
     if (!varsExistList[ind])
         printf(YEL "Предупреждаю: переменной которую вы ввели нету в выражении\n" COLOR_RESET);
     
+    return OK;
+}
+
+errorStatus_e ConstFold(binTreeNode_t *inNode)
+{
+    if (!inNode) return OK;
+    if (IN_TYPE == CONST_T || IN_TYPE == VAR_T) return OK;
+
+    if (ConstFold(IN_L) != OK) return WRIN;
+    if (ConstFold(IN_R) != OK) return WRIN;
+
+    if (IN_L && T(IN_L) == CONST_T && T(IN_R) == CONST_T) {
+        switch (IN_OP)
+        {
+        case OP_ADD:
+            IN_CONST = C(IN_L) + C(IN_R);
+            break;
+        case OP_SUB:
+            IN_CONST = C(IN_L) - C(IN_R);
+            break;
+        case OP_MULT:
+            IN_CONST = C(IN_L) * C(IN_R);
+            break;
+        case OP_DIV:
+            if (IsZero(C(IN_R))) return $ERR(WRIN, "DIVISION BY ZERO");
+            IN_CONST = C(IN_L) / C(IN_R);
+            break;
+        case OP_LOG:
+            if (C(IN_R) <= 0 || C(IN_L) <= 0 || IsZero(C(IN_L) - 1)) return $ERR(WRIN, "WRONG LOG ARGUMENTS");
+            IN_CONST = log(C(IN_R)) / log(C(IN_L));
+            break;
+        case OP_DEG:
+            IN_CONST = pow(C(IN_L), C(IN_R));
+            if (isnan(IN_CONST) || isinf(IN_CONST)) return $ERR(WRIN, "WRONG POW ARGUMENTS");
+            break;
+        default:
+            return $ERR(WRIN, "UNSUPPORTED OPERATION");
+        }
+        TreeNodeDelete(&IN_L);
+        TreeNodeDelete(&IN_R);
+        IN_TYPE = CONST_T;
+    }
+
+    return OK;
+}
+
+errorStatus_e AlgebraSimpl(binTreeNode_t **node)
+{
+    assert(node);
+    binTreeNode_t *inNode = *node;
+    errorStatus_e statusCode = OK;
+    binTreeNodeVal_t val = {};
+
+    if (!inNode) return OK;
+    if (IN_TYPE == CONST_T || IN_TYPE == VAR_T) return OK;
+
+    RUN_COMMAND(AlgebraSimpl(&IN_L), "PROBLEM WHILE CHECKING LEFT SUBTREE"); 
+    RUN_COMMAND(AlgebraSimpl(&IN_R), "PROBLEM WHILE CHECKING RIGHT SUBTREE");
+
+    if (!IN_R || !IN_L) return OK;
+
+    switch (IN_OP)
+    {
+        case OP_ADD:
+            if      (T(IN_L) == CONST_T && IsZero(C(IN_L))) RelocateNode(node, IN_L, IN_R);
+            else if (T(IN_R) == CONST_T && IsZero(C(IN_R))) RelocateNode(node, IN_R, IN_L);
+            return OK;
+        case OP_SUB:
+            if      (T(IN_R) == CONST_T && IsZero(C(IN_R)))                          RelocateNode(node, IN_R, IN_L);
+            else if (T(IN_L) == VAR_T && T(IN_R) == VAR_T && VAR(IN_L) == VAR(IN_R)) {REPLACE_WITH(0);}
+            return OK;
+        case  OP_MULT:
+            if      (T(IN_L) == CONST_T && IsZero(C(IN_L)))     {REPLACE_WITH(0);}
+            else if (T(IN_R) == CONST_T && IsZero(C(IN_R)))     {REPLACE_WITH(0);}
+            else if (T(IN_L) == CONST_T && IsZero(C(IN_L) - 1)) RelocateNode(node, IN_L, IN_R);
+            else if (T(IN_R) == CONST_T && IsZero(C(IN_R) - 1)) RelocateNode(node, IN_R, IN_L);
+            return OK;
+        case OP_DIV:
+            if      (T(IN_L) == CONST_T && IsZero(C(IN_L)))                          {REPLACE_WITH(0);}
+            else if (T(IN_R) == CONST_T && IsZero(C(IN_R) - 1))                      RelocateNode(node, IN_R, IN_L);
+            else if (T(IN_L) == VAR_T && T(IN_R) == VAR_T && VAR(IN_L) == VAR(IN_R)) {REPLACE_WITH(1);}
+            return OK;
+        case OP_DEG:
+            if      (T(IN_L) == CONST_T && IsZero(C(IN_L) - 1)) {REPLACE_WITH(1);}
+            else if (T(IN_R) == CONST_T && IsZero(C(IN_R)))     {REPLACE_WITH(1);}
+            else if (T(IN_L) == CONST_T && IsZero(C(IN_L)))     {REPLACE_WITH(0);}
+            else if (T(IN_R) == CONST_T && IsZero(C(IN_R) - 1)) RelocateNode(node, IN_R, IN_L);
+            return OK;
+        case OP_LOG:
+            if (T(IN_R) == CONST_T && IsZero(C(IN_R) - 1)) {REPLACE_WITH(0);}
+            return OK;
+        default:
+            return OK;
+    }
+}
+
+errorStatus_e RelocateNode(binTreeNode_t **node, binTreeNode_t *delNode, binTreeNode_t *reconNode)
+{
+    assert(node);
+    assert(delNode);
+    assert(reconNode);
+
+    TreeNodeDelete(&delNode);
+    free(*node);
+    *node = reconNode;
+
     return OK;
 }
