@@ -29,6 +29,7 @@ errorStatus_e FindDerivative(const char *inFileName)
 
     bool IsChanged = false;
     do {
+        IsChanged = false;
         ConstFold(outTree.data);
         AlgebraSimpl(&outTree.data);
     } while (IsChanged);
@@ -583,15 +584,18 @@ errorStatus_e GetVarToDiff(bool *varsExistList, vars_e *resVar)
     return OK;
 }
 
-errorStatus_e ConstFold(binTreeNode_t *inNode)
+errorStatus_e ConstFold(binTreeNode_t *inNode, bool *isChanged)
 {
+    assert(isChanged);
+
     if (!inNode) return OK;
     if (IN_TYPE == CONST_T || IN_TYPE == VAR_T) return OK;
 
-    if (ConstFold(IN_L) != OK) return WRIN;
-    if (ConstFold(IN_R) != OK) return WRIN;
+    if (ConstFold(IN_L, isChanged) != OK) return WRIN;
+    if (ConstFold(IN_R, isChanged) != OK) return WRIN;
 
     if (IN_L && T(IN_L) == CONST_T && T(IN_R) == CONST_T) {
+        *isChanged = true;
         switch (IN_OP)
         {
         case OP_ADD:
@@ -626,9 +630,11 @@ errorStatus_e ConstFold(binTreeNode_t *inNode)
     return OK;
 }
 
-errorStatus_e AlgebraSimpl(binTreeNode_t **node)
+errorStatus_e AlgebraSimpl(binTreeNode_t **node, bool *isChanged)
 {
     assert(node);
+    assert(isChanged);
+
     binTreeNode_t *inNode = *node;
     errorStatus_e statusCode = OK;
     binTreeNodeVal_t val = {};
@@ -636,40 +642,40 @@ errorStatus_e AlgebraSimpl(binTreeNode_t **node)
     if (!inNode) return OK;
     if (IN_TYPE == CONST_T || IN_TYPE == VAR_T) return OK;
 
-    RUN_COMMAND(AlgebraSimpl(&IN_L), "PROBLEM WHILE CHECKING LEFT SUBTREE"); 
-    RUN_COMMAND(AlgebraSimpl(&IN_R), "PROBLEM WHILE CHECKING RIGHT SUBTREE");
+    RUN_COMMAND(AlgebraSimpl(&IN_L, isChanged), "PROBLEM WHILE CHECKING LEFT SUBTREE"); 
+    RUN_COMMAND(AlgebraSimpl(&IN_R, isChanged), "PROBLEM WHILE CHECKING RIGHT SUBTREE");
 
     if (!IN_R || !IN_L) return OK;
 
     switch (IN_OP)
     {
         case OP_ADD:
-            if      (T(IN_L) == CONST_T && IsZero(C(IN_L))) RelocateNode(node, IN_L, IN_R);
-            else if (T(IN_R) == CONST_T && IsZero(C(IN_R))) RelocateNode(node, IN_R, IN_L);
+            if      (T(IN_L) == CONST_T && IsZero(C(IN_L))) {RelocateNode(node, IN_L, IN_R); *isChanged = true;}
+            else if (T(IN_R) == CONST_T && IsZero(C(IN_R))) {RelocateNode(node, IN_R, IN_L); *isChanged = true;}
             return OK;
         case OP_SUB:
-            if      (T(IN_R) == CONST_T && IsZero(C(IN_R)))                          RelocateNode(node, IN_R, IN_L);
-            else if (T(IN_L) == VAR_T && T(IN_R) == VAR_T && VAR(IN_L) == VAR(IN_R)) {REPLACE_WITH(0);}
+            if      (T(IN_R) == CONST_T && IsZero(C(IN_R)))                          {RelocateNode(node, IN_R, IN_L); *isChanged = true;}
+            else if (T(IN_L) == VAR_T && T(IN_R) == VAR_T && VAR(IN_L) == VAR(IN_R)) {REPLACE_WITH(0); *isChanged = true;}
             return OK;
         case  OP_MULT:
-            if      (T(IN_L) == CONST_T && IsZero(C(IN_L)))     {REPLACE_WITH(0);}
-            else if (T(IN_R) == CONST_T && IsZero(C(IN_R)))     {REPLACE_WITH(0);}
-            else if (T(IN_L) == CONST_T && IsZero(C(IN_L) - 1)) RelocateNode(node, IN_L, IN_R);
-            else if (T(IN_R) == CONST_T && IsZero(C(IN_R) - 1)) RelocateNode(node, IN_R, IN_L);
+            if      (T(IN_L) == CONST_T && IsZero(C(IN_L)))     {REPLACE_WITH(0); *isChanged = true;}
+            else if (T(IN_R) == CONST_T && IsZero(C(IN_R)))     {REPLACE_WITH(0); *isChanged = true;}
+            else if (T(IN_L) == CONST_T && IsZero(C(IN_L) - 1)) {RelocateNode(node, IN_L, IN_R); *isChanged = true;}
+            else if (T(IN_R) == CONST_T && IsZero(C(IN_R) - 1)) {RelocateNode(node, IN_R, IN_L); *isChanged = true;}
             return OK;
         case OP_DIV:
-            if      (T(IN_L) == CONST_T && IsZero(C(IN_L)))                          {REPLACE_WITH(0);}
-            else if (T(IN_R) == CONST_T && IsZero(C(IN_R) - 1))                      RelocateNode(node, IN_R, IN_L);
-            else if (T(IN_L) == VAR_T && T(IN_R) == VAR_T && VAR(IN_L) == VAR(IN_R)) {REPLACE_WITH(1);}
+            if      (T(IN_L) == CONST_T && IsZero(C(IN_L)))                          {REPLACE_WITH(0); *isChanged = true;}
+            else if (T(IN_R) == CONST_T && IsZero(C(IN_R) - 1))                      {RelocateNode(node, IN_R, IN_L); *isChanged = true;}
+            else if (T(IN_L) == VAR_T && T(IN_R) == VAR_T && VAR(IN_L) == VAR(IN_R)) {REPLACE_WITH(1); *isChanged = true;}
             return OK;
         case OP_DEG:
-            if      (T(IN_L) == CONST_T && IsZero(C(IN_L) - 1)) {REPLACE_WITH(1);}
-            else if (T(IN_R) == CONST_T && IsZero(C(IN_R)))     {REPLACE_WITH(1);}
-            else if (T(IN_L) == CONST_T && IsZero(C(IN_L)))     {REPLACE_WITH(0);}
-            else if (T(IN_R) == CONST_T && IsZero(C(IN_R) - 1)) RelocateNode(node, IN_R, IN_L);
+            if      (T(IN_L) == CONST_T && IsZero(C(IN_L) - 1)) {REPLACE_WITH(1); *isChanged = true;}
+            else if (T(IN_R) == CONST_T && IsZero(C(IN_R)))     {REPLACE_WITH(1); *isChanged = true;}
+            else if (T(IN_L) == CONST_T && IsZero(C(IN_L)))     {REPLACE_WITH(0); *isChanged = true;}
+            else if (T(IN_R) == CONST_T && IsZero(C(IN_R) - 1)) {RelocateNode(node, IN_R, IN_L); *isChanged = true;}
             return OK;
         case OP_LOG:
-            if (T(IN_R) == CONST_T && IsZero(C(IN_R) - 1)) {REPLACE_WITH(0);}
+            if (T(IN_R) == CONST_T && IsZero(C(IN_R) - 1)) {REPLACE_WITH(0); *isChanged = true;}
             return OK;
         default:
             return OK;
